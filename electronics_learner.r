@@ -85,16 +85,25 @@ combineByRow <- function(m) {
 ##########################
 ## Load raw training data
 ##########################
-rawdata<- read.csv("train_category.dat", sep="\t", nrow=100000, skip=100000, header=FALSE)
-
-colnames(rawdata)<-c
+rawdata<- read.csv("train_category.dat", sep="\t", nrow=100000)
+cls <- colnames(rawdata)
+#colnames(rawdata)<-c
 ################################
 ## Feature Engineering
 #################################
+count <- unique(rawdata$UserID)# nrow(rawdata)
+#rawdata<- rbind(rawdata, read.csv("test_category.dat", sep="\t", nrow=100000))
+tempraw <- read.csv("train_category.dat", sep="\t", nrow=100000, skip=100000, header = FALSE)
+colnames(tempraw)<-cls
+rawdata<- rbind(rawdata, tempraw)
+rm(tempraw)
+gc()
+
+rawdata.count <- rawdata$Count
 rawdata$UserID <-as.factor(rawdata$UserID) # Convert UserId to factor
 rawdata.userid <-data.frame(UserID= rawdata$UserID)
 rawdata.userid <- as.factor(rawdata.userid$UserID)
-rawdata.count <- rawdata$Count
+#rawdatatest.count <- rawdatatest$Count
 ###### Convert to a sparse matrix on events
 
 #rawdata <- Matrix( rawdata, sparse = TRUE)
@@ -122,7 +131,7 @@ rawdata<- combineByRow(m = rawdata)
                        
 #####Add labels from labeldata
 labeldata<- read.csv("trainLabel.dat", sep="\t")
-labeldata<- labeldata[3968:7877,]
+labeldata<- labeldata[1:3967,]
 #labeldata <- merge.with.order( rawdata.userid, labeldata, by="UserID", all.x = TRUE, keep_order = 1)
 #rm(labeldata)# get rid of labeldata not needed now
 gc()
@@ -133,12 +142,12 @@ labeldata<- as.factor(labeldata)
 # Train the model
 ##############
 
-model = svm(rawdata,labeldata, kernel="linear", cost=0.3)
+model = svm(rawdata[1:3967,],labeldata, cost = 10, gamma = 0.1,  class.weights = c("0"=0.03, "1"=0.97))
 #########################
 # Get the predictions
 ###########################
-data.predictions <- predict(model, rawdata, type = "class", )
-#weighteddata.test.observations <- weighteddata.test$Label
+data.predictions <- predict(model, rawdata[-(1:3967),], type = "class" )
+weighteddata.test.observations <- weighteddata.test$Label
 ## show the confusion matrix
 #confusion.matrix <- table(weighteddata.test.predictions, weighteddata.test.observations)
 #confusion.matrix
